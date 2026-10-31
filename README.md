@@ -21,7 +21,7 @@ vessel control.
 
 | Edition | Where | Notes |
 |---|---|---|
-| Online | GitHub Pages (built by `.github/workflows/pages.yml`) | Leaves out the client's CAD screenshots |
+| Online | https://rahulrajalpy16-coder.github.io/amphicos-offshore-platform/ (`index.html` and `fpso/` at the repository root, kept up to date by `.github/workflows/pages.yml`) | Leaves out the client's CAD screenshots |
 | Offline | `dist/Amphicos_Platform_Offline.zip` | Unzip, then run the launcher for Windows or macOS; works with no internet |
 
 ### Running the offline edition

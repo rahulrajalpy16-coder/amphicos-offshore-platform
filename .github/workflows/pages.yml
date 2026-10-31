@@ -1,16 +1,16 @@
-# Builds the online edition (no CAD screenshots) and publishes it to GitHub Pages.
-# One-time setup: repository Settings > Pages > Source: "GitHub Actions".
-name: Publish online edition
+# Keeps the online edition at the repository root up to date (GitHub Pages: "Deploy from a branch", main, / root).
+# On every change to the source, it rebuilds the online edition (no CAD screenshots) and commits index.html,
+# fpso/index.html and .nojekyll if they changed. Commits made with GITHUB_TOKEN do not trigger this workflow again.
+name: Update online edition
 on:
   push:
     branches: [main]
+    paths-ignore: ['index.html', 'fpso/**', '.nojekyll']
   workflow_dispatch:
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 concurrency:
-  group: pages
+  group: online-edition
   cancel-in-progress: true
 jobs:
   build:
@@ -22,15 +22,15 @@ jobs:
           node-version: 20
       - run: cd twin && npm ci
       - run: node tools/build.mjs
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/web
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Copy the online edition to the repository root
+        run: |
+          mkdir -p fpso
+          cp dist/web/index.html index.html
+          cp dist/web/fpso/index.html fpso/index.html
+          touch .nojekyll
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add index.html fpso/index.html .nojekyll
+          git diff --cached --quiet || (git commit -m "Update online edition" && git push)
