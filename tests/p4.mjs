@@ -1,0 +1,25 @@
+// Frequency converter as an FPSO system: twin menu -> flight to the deck -> detailed converter beside the rig, and the FPSO menu back into a twin system.
+import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 1440, height: 860 }, reducedMotion: 'reduce' }); const errs = [], res = [];
+p.on('pageerror', e => errs.push('ERR ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+const check = (n, ok, i = '') => { res.push(`${ok ? 'PASS' : 'FAIL'}  ${n}${i ? '  [' + i + ']' : ''}`); console.log(res.at(-1)); };
+const until = async (fn, ms = 300000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await fn()) return true; } catch (e) {} await p.waitForTimeout(400); } return false; };
+const st = () => p.evaluate(() => window.__twin.state());
+await p.goto('http://127.0.0.1:8766/index.html#fpso', { waitUntil: 'domcontentloaded' });
+await p.waitForFunction(() => document.getElementById('loading')?.hidden === true, null, { timeout: 240000 });
+await until(async () => { const s = await st(); return s.inside && !s.busy; });
+const tw = p.frameLocator('#twin-frame');
+check('Twin menu lists the frequency converter and hybrid inverter', (await tw.locator('#index [data-asset="spc"]').count()) === 1 && (await tw.locator('#index [data-asset="hi"]').count()) === 1);
+await tw.locator('#index [data-asset="spc"]').click();
+const out = await until(async () => { const s = await st(); return !s.inside && !s.busy && !s.on; });
+await p.waitForFunction(() => !window.__nav.flying(), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(1500);
+check('Selecting it flies to the deck and hands over to the detailed AMP-SPC', out && /Frequency Power Converter/.test(await p.locator('#panel h2').innerText()));
+check('Left panel now shows the FPSO menu (15 systems + converters)', (await p.locator('#ex-fpso [data-action="twin-sys"]').count()) === 15 && await p.locator('#ex-fpso').isVisible() && !(await p.locator('#ex-rig').isVisible()));
+await p.screenshot({ path: '/tmp/fm/shots/ui/p4-spc.png', timeout: 120000 });
+await p.click('#ex-fpso [data-action="twin-sys"][data-id="S02"]');
+const back = await until(async () => { const s = await st(); return s.inside && !s.busy; });
+const lvl = await until(() => p.evaluate(() => { const T = window.__twin.frameWin().__twin; return T.state.systemId === 'S02' && !T.director.isFlying(); }), 240000);
+check('FPSO menu item enters the twin at that system', back && lvl, await p.evaluate(() => window.__twin.frameWin().__twin.state.level));
+console.log(errs.slice(0, 6).join('\n') || 'no page errors');
+await b.close();

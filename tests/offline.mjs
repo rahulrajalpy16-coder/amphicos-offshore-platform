@@ -1,0 +1,27 @@
+// Offline edition: open index.html from disk with every network request blocked, enter the twin and come back.
+import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
+import path from 'node:path';
+const dir = process.argv[2] || path.resolve('dist/offline/Amphicos_Platform');
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files=false'] });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 }, offline: true });
+const net = [], errs = [], res = [];
+ctx.on('request', r => { if (!/^(file|data|blob|about):/.test(r.url())) net.push(r.url()); });
+const page = await ctx.newPage();
+page.on('pageerror', e => errs.push('PAGEERROR ' + e.message)); page.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
+const check = (n, ok, info = '') => { res.push(`${ok ? 'PASS' : 'FAIL'}  ${n}${info ? '  [' + info + ']' : ''}`); console.log(res.at(-1)); };
+const until = async (fn, ms = 300000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await fn()) return true; } catch (e) {} await page.waitForTimeout(400); } return false; };
+const t0 = Date.now();
+await page.goto('file://' + path.join(dir, 'index.html') + '#fpso', { waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => document.getElementById('loading')?.hidden === true, null, { timeout: 240000 });
+check('Opens from disk with the network off', true, ((Date.now() - t0) / 1000).toFixed(0) + ' s');
+const fonts = await page.evaluate(async () => { await document.fonts.ready; return ['Barlow Condensed', 'IBM Plex Sans', 'IBM Plex Mono'].map(f => document.fonts.check(`600 16px "${f}"`)); });
+check('Embedded fonts are available', fonts.every(Boolean), fonts.join(','));
+const st = () => page.evaluate(() => window.__twin.state());
+check('FPSO exterior loads from the bundle', (await st()).ext);
+const inside = await until(async () => { const s = await st(); return s.inside && !s.busy; });
+check('#fpso hands over into the twin (twin page loaded from disk)', inside && (await page.evaluate(() => window.__twin.frameWin().__twin.state.level)) === 'vessel');
+await page.frameLocator('#twin-frame').locator('#btn-rig').click();
+check('Rig button returns to the rig scene', await until(async () => { const s = await st(); return !s.inside && !s.busy && !s.on; }));
+check('No network request was attempted', net.length === 0, net.slice(0, 3).join(' '));
+console.log(errs.length ? errs.slice(0, 10).join('\n') : 'no page errors');
+await browser.close();

@@ -1,0 +1,12 @@
+{
+  "name": "amphicos-offshore-platform",
+  "private": true,
+  "description": "Amphicos 3D offshore demonstration platform: rig, FPSO digital twin and frequency converter (online and offline editions)",
+  "type": "module",
+  "scripts": {
+    "setup": "cd twin && npm ci",
+    "build": "node tools/build.mjs",
+    "package": "node tools/build.mjs && node tools/package.mjs",
+    "test:twin": "cd twin && npm test"
+  }
+}

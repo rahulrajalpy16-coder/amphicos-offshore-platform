@@ -1,0 +1,11 @@
+node_modules/
+twin/node_modules
+dist/
+twin/dist/
+twin/dist-single/
+twin/dist-embed/
+tools/.rig-entry.js
+# client CAD screenshots: offline edition only, never committed
+private/
+*.log
+.DS_Store

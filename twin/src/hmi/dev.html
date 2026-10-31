@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HMI harness (development)</title>
+<style>
+  html,body{margin:0;height:100%;background:#2b3036;font-family:Segoe UI,Arial,sans-serif}
+  #bar{display:flex;gap:.5em;align-items:center;padding:.3em .6em;background:#1f2328;color:#eee;font-size:15px}
+  #bar select,#bar button{font:inherit}
+  #host{position:absolute;top:2.4em;left:0;right:0;bottom:0}
+  #minis{position:fixed;right:8px;bottom:8px;display:none}
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>HMI development harness</b>
+  <label>Module <select id="mod"></select></label>
+  <button id="run">Pause</button>
+  <span id="info"></span>
+  <canvas id="mini" width="320" height="180" style="margin-left:auto;border:1px solid #555;height:60px;width:107px" title="renderMini preview"></canvas>
+</div>
+<div id="host"></div>
+<script type="module" src="./dev.js"></script>
+</body>
+</html>

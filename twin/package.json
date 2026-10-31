@@ -1,0 +1,27 @@
+{
+  "name": "amphicos-fpso-digital-twin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Amphicos FPSO 3D Digital Twin: interactive engineering visualisation and educational simulation of 15 electrical, automation and telecom systems",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "validate": "node tools/validate_db.mjs",
+    "build": "npm run validate && vite build && node tools/build_single.mjs",
+    "preview": "vite preview --port 4173",
+    "serve": "node tools/serve.mjs",
+    "test": "vitest run",
+    "test:e2e": "node tests/e2e/run_e2e.mjs",
+    "test:platform": "vitest run src/core/__tests__",
+    "export:glb": "node tools/export_glb.mjs",
+    "build:single": "node tools/build_single.mjs"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.11",
+    "vite-plugin-singlefile": "2.0.3",
+    "vitest": "2.1.8"
+  }
+}
