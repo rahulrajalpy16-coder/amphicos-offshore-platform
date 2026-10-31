@@ -70,15 +70,17 @@ for (const j of J) {
   const sp = await page.evaluate(s => window.__nav.screenPt(s), j.sub);
   await page.mouse.move(sp[0], sp[1]); await page.waitForTimeout(700);
   const tip = await page.evaluate(() => window.__nav.tip());
-  await click3D(sp); await page.waitForTimeout(2500);
+  const camPre = (await N()).cam; // the equipment view before the HMI step
+  await click3D(sp); await page.waitForFunction(() => !document.getElementById('hmi').hidden, null, { timeout: 120000 }).catch(() => {}); await page.waitForTimeout(1500); // camera faces the screen first
   let s = await P();
   check(`6 ${tag}: hovering the 3D screen names it; clicking opens the matching HMI`, /^Open /.test(tip || '') && s.sel.hmi === j.hmi && (j.unit == null || s.sel.unit === j.unit) && !(await page.locator('#hmi').isHidden()), `tip "${tip}", hmi ${s.sel.hmi}`);
   await shot(`j-${tag}-3`);
   const camHmi = (await N()).cam;
-  // 9. closing the HMI keeps the exact view
-  await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(1200);
+  // 9. closing the HMI returns to the equipment view the visitor had before the camera stepped to the screen
+  await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(800);
+  await page.waitForFunction(() => !window.__nav.flying(), null, { timeout: 120000 }).catch(() => {}); await page.waitForTimeout(600);
   const camAfter = (await N()).cam;
-  check(`9 ${tag}: closing the HMI returns to the same equipment view`, near(camAfter.p, camHmi.p, 0.02) && near(camAfter.t, camHmi.t, 0.02) && (await P()).sel.sub === j.sub);
+  check(`9 ${tag}: closing the HMI returns to the same equipment view`, near(camAfter.p, camPre.p, 0.05) && near(camAfter.t, camPre.t, 0.05) && (await P()).sel.sub === j.sub, `moved ${Math.hypot(...camAfter.p.map((v, i) => v - camPre.p[i])).toFixed(2)} m`);
   // Back climbs one level and restores the earlier view
   await page.click('#panel [data-action="insp-back"]'); await settle();
   s = await P(); const camBack = (await N()).cam;
@@ -87,7 +89,7 @@ for (const j of J) {
 
 // 7-8. operating the PMS: commands change the plant, refusals are explained, values stay consistent
 await page.click('#explorer [data-action="sys"][data-id="swb"]'); await settle();
-await page.click('#panel [data-action="insp-hmi"]'); await page.waitForTimeout(2500);
+await page.click('#panel [data-action="insp-hmi"]'); await page.waitForFunction(() => !document.getElementById('hmi').hidden, null, { timeout: 120000 }).catch(() => {}); await page.waitForTimeout(1200);
 await page.waitForTimeout(8000);
 let s = await P();
 check('8 PMS values are internally consistent per bus (P, Q, S, I, f, PF, SCR bays)', !inv(s).length, inv(s).join(', ') || `P ${s.p.toFixed(0)} kW, PF ${s.pf.toFixed(2)}`);
@@ -110,13 +112,13 @@ await hb('Stop jacking'); await hb('Restore the starting state'); await page.wai
 await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(800);
 // SCR assignment interlock and DG oil-mist protection
 await page.keyboard.press('Escape'); await page.waitForTimeout(500); await clickEx('#explorer [data-action="scope"][data-id="scr-assign"]'); await settle();
-await page.click('#panel [data-action="insp-hmi"]'); await page.waitForTimeout(2000);
+await page.click('#panel [data-action="insp-hmi"]'); await page.waitForFunction(() => !document.getElementById('hmi').hidden, null, { timeout: 120000 }).catch(() => {}); await page.waitForTimeout(1200);
 await hb('Assign bay 2 to mud pump 4'); await page.waitForTimeout(1200); s = await P();
 check('7 SCR assignment refuses a change while the motor runs', s.bays[1].m === 'MP1' && s.alarms.some(a => /assignment refused|already on another bay|must be stopped/.test(a)), s.alarms[0]);
 await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(800);
 await clickEx('#explorer [data-action="scope"][data-id="dg-lcp"]'); await settle();
 await page.click('#panel [data-action="comp"][data-sub="dg-lcp-2"]'); await settle();
-await page.click('#panel [data-action="insp-hmi"]'); await page.waitForTimeout(2000);
+await page.click('#panel [data-action="insp-hmi"]'); await page.waitForFunction(() => !document.getElementById('hmi').hidden, null, { timeout: 120000 }).catch(() => {}); await page.waitForTimeout(1200);
 await hb('Inject oil-mist'); await page.waitForTimeout(32000); s = await P();
 check('7 DG oil-mist fault raises the alarm then shuts the engine down and locks it out', s.gens[1].lock && s.gens[1].st === 'tripped' && s.alarms.some(a => /oil mist high/.test(a)), `${s.gens[1].st} omd ${s.gens[1].omd.toFixed(2)}`);
 await hb('^Reset$'); await page.waitForTimeout(800); s = await P();
@@ -169,7 +171,7 @@ m.on('pageerror', e => errs.push('M PAGEERROR ' + e.message));
 await m.goto(URL + '#rig', { waitUntil: 'domcontentloaded', timeout: 60000 }); await m.waitForFunction(() => document.getElementById('loading')?.hidden === true, null, { timeout: 120000 });
 await m.evaluate(() => { document.getElementById('intro').hidden = true; });
 await m.tap('#sys-toggle'); await m.waitForTimeout(800); await m.tap('#explorer [data-action="sys"][data-id="swb"]'); await m.waitForTimeout(6000);
-await m.locator('#panel [data-action="insp-hmi"]').scrollIntoViewIfNeeded(); await m.tap('#panel [data-action="insp-hmi"]'); await m.waitForTimeout(2500);
+await m.locator('#panel [data-action="insp-hmi"]').scrollIntoViewIfNeeded(); await m.tap('#panel [data-action="insp-hmi"]'); await m.waitForFunction(() => !document.getElementById('hmi').hidden, null, { timeout: 120000 }).catch(() => {}); await m.waitForTimeout(1200);
 const mob = await m.evaluate(() => ({ over: document.documentElement.scrollWidth - innerWidth, hmi: !document.getElementById('hmi').hidden, cw: document.getElementById('hmi-canvas').getBoundingClientRect().width }));
 check('Phone: the HMI opens full width without sideways scroll', mob.hmi && mob.over === 0 && mob.cw > 300, JSON.stringify(mob));
 await m.screenshot({ path: `${out}/phone-hmi.png`, timeout: 180000 });

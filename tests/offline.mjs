@@ -1,7 +1,7 @@
 // Offline edition: open index.html from disk with every network request blocked, enter the twin and come back.
 import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
 import path from 'node:path';
-const dir = process.argv[2] || path.resolve('dist/offline/Amphicos_Platform');
+const dir = path.resolve(process.argv[2] || 'dist/offline/Amphicos_Platform');
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--allow-file-access-from-files=false'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 }, offline: true });
 const net = [], errs = [], res = [];

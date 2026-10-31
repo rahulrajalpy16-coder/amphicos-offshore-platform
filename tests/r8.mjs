@@ -25,7 +25,7 @@ await page.screenshot({ timeout: 180000, path: `${out}/f01-rig-overview.png` });
 // one move from the rig to the FPSO
 await page.click('#panel [data-action="asset"][data-id="fpso"]'); await settle(page);
 const st = await page.evaluate(() => ({ h: location.hash, proj: document.getElementById('proj-name').textContent, cam: window.__nav.cam(), view: window.__nav.inView() }));
-check('Go to FPSO flies to the vessel about 600 m from the rig and switches the section name', /Amphicos FPSO Digital Twin/.test(await T(page, '#panel h2')) && st.h === '#converter' && /Converter/.test(st.proj) && Math.hypot(st.cam.t[0], st.cam.t[2]) > 500 && st.view >= 0.25, `${st.proj} target ${st.cam.t.map(v => v.toFixed(0))} view ${st.view}`);
+check('Go to FPSO flies to the vessel about 600 m from the rig and switches the section name', /Amphicos FPSO Digital Twin/.test(await T(page, '#panel h2')) && st.h === '#converter' && /FPSO/.test(st.proj) && Math.hypot(st.cam.t[0], st.cam.t[2]) > 500 && st.view >= 0.25, `${st.proj} target ${st.cam.t.map(v => v.toFixed(0))} view ${st.view}`);
 const fp = await T(page, '#panel');
 check('FPSO card presents the Amphicos FPSO digital twin with an entry action, and the two converters as a showcase', /representative 300 m FPSO/i.test(fp) && (await page.locator('#panel [data-action="twin-enter"]').count()) === 1 && /Showcase only/i.test(fp) && /AMP-SPC/.test(fp) && /AMP-HI/.test(fp));
 await page.screenshot({ timeout: 180000, path: `${out}/f02-fpso.png` });
@@ -46,7 +46,7 @@ check('AMP-SPC HMI is labelled simulated and uses percent, not ratings', /simula
 await page.screenshot({ timeout: 180000, path: `${out}/f03-spc-hmi.png` });
 await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(800);
 // AMP-HI
-await page.click('#explorer [data-action="asset"][data-id="hi"]'); await settle(page);
+await page.click('#explorer [data-action="asset"][data-id="hi"]:visible'); await settle(page);
 const hi = await T(page, '#panel');
 check('AMP-HI card carries the brochure features and flags the diesel claim', ['Black start capability', 'Grid forming, grid firming and grid following', 'Four-quadrant', 'Drawworks brake energy recycling', 'DC-coupled batteries', '-40 °C to 55 °C'].every(s => hi.includes(s)) && /Up to 15 % less diesel consumption" is a brochure claim/.test(hi) && !INVENTED.test(hi.replace(/\(kW, kWh\)/, '')));
 await page.click('#panel [data-action="hmi-open"][data-sys="hi"]'); await page.waitForTimeout(1500);
@@ -56,12 +56,12 @@ check('AMP-HI concept HMI: black start switches to grid forming and logs the ste
 await page.screenshot({ timeout: 180000, path: `${out}/f04-hi-hmi.png` });
 await page.click('[data-action="hmi-close"]'); await page.waitForTimeout(800);
 // port quay
-await page.click('#explorer [data-action="asset"][data-id="quay"]'); await settle(page);
+await page.click('#explorer [data-action="asset"][data-id="quay"]:visible'); await settle(page);
 const qy = await T(page, '#panel');
 check('Port quay shows the brochure application: grid, port converter, IEC 80005-3 connection, ship', ['National grid', 'Port terminal converter', 'IEC 80005-3', 'Ship electrical system'].every(s => qy.includes(s)) && /not a real port/i.test(qy));
 await page.screenshot({ timeout: 180000, path: `${out}/f05-quay.png` });
 // enter the container (separate scene) and come back
-await page.click('#explorer [data-action="asset"][data-id="spc"]'); await settle(page);
+await page.click('#explorer [data-action="asset"][data-id="spc"]:visible'); await settle(page);
 await page.click('#panel [data-action="enter-container"]'); await until(page, () => page.evaluate(() => window.__proj.cur() === 'shelter' && document.getElementById('ptrans').hidden));
 await page.waitForTimeout(2000);
 const inn = await T(page, '#panel'), il = await page.evaluate(() => window.__proj.labels());
@@ -84,10 +84,10 @@ check('Back to the FPSO deck lands on the AMP-SPC container in the sea scene', /
 // back to the rig in one move
 await page.click('#cambar [data-action="cam-overview"]'); await settle(page);
 const back = await page.evaluate(() => ({ h: location.hash, proj: document.getElementById('proj-name').textContent, cam: window.__nav.cam() }));
-check('Overview returns to the rig and the section name follows', /Approved rig systems/.test(await T(page, '#panel h2')) && back.h === '#rig' && /Rig Systems/.test(back.proj) && Math.hypot(back.cam.t[0], back.cam.t[2]) < 60, `${back.h} ${back.proj}`);
+check('Overview returns to the rig and the section name follows', /Approved rig systems/.test(await T(page, '#panel h2')) && back.h === '#rig' && /3D Rig/.test(back.proj) && Math.hypot(back.cam.t[0], back.cam.t[2]) < 60, `${back.h} ${back.proj}`);
 // the rig selection and the converter selection do not leak into each other
 await page.click('#explorer [data-action="sys"][data-id="swb"]'); await settle(page);
-check('Selecting a rig system leaves the converter section', /Main switchboard and PMS/.test(await T(page, '#panel h2')) && /Rig Systems/.test(await T(page, '#proj-name')) && !(await page.evaluate(() => window.__proj.labels())).some(l => /AMP-SPC/.test(l)));
+check('Selecting a rig system leaves the converter section', /Main switchboard and PMS/.test(await T(page, '#panel h2')) && /3D Rig/.test(await page.evaluate(() => document.getElementById("proj-name").textContent)) && !(await page.evaluate(() => window.__proj.labels())).some(l => /AMP-SPC/.test(l)));
 await page.close();
 // deep links, reduced motion, phone, no-WebGL
 const d = await browser.newPage({ viewport: { width: 1280, height: 800 } }); hook(d, 'deeplink');

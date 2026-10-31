@@ -31,7 +31,7 @@ const onDeck = b => Math.abs(b[0][1] - ex.i.mainDeckY) < 0.05;
 const clear = await page.evaluate(() => { const r = []; for (const id of ['spc', 'hi']) { const [a, b] = window.__twin.bounds(id); r.push({ id, a, b }); } return r; });
 const mods = await page.evaluate(() => window.__twin.pickBoxes());
 const hits = clear.map(c => mods.filter(([a, b]) => !(c.b[0] <= a[0] || c.a[0] >= b[0] || c.b[2] <= a[2] || c.a[2] >= b[2] || c.b[1] <= a[1] || c.a[1] >= b[1])).length);
-check('AMP-SPC and AMP-HI stand on the main deck in the open gap between modules, clear of every topsides volume', onDeck(ex.sp) && onDeck(ex.hi) && hits[0] === 0 && hits[1] === 0 && ex.sp[1][0] < ex.hi[0][0], `spc ${ex.sp.map(v => v.map(x => x.toFixed(1)))} hi ${ex.hi.map(v => v.map(x => x.toFixed(1)))} hits ${hits}`);
+check('AMP-SPC (starboard) and AMP-HI (port) stand on the main deck in the open gap between modules, clear of every topsides volume', onDeck(ex.sp) && onDeck(ex.hi) && hits[0] === 0 && hits[1] === 0 && ex.sp[0][2] > 0 && ex.hi[1][2] < 0, `spc ${ex.sp.map(v => v.map(x => x.toFixed(1)))} hi ${ex.hi.map(v => v.map(x => x.toFixed(1)))} hits ${hits}`);
 const sc = await page.evaluate(() => window.__twin.showcase());
 const ctr = b => [(b[0][0] + b[1][0]) / 2, (b[0][2] + b[1][2]) / 2];
 check('The rig places the containers at the twin\'s showcase positions (shared constants)', sc.every(c => { const b = c.id === 'spc' ? ex.sp : ex.hi, m = ctr(b); return Math.abs(m[0] - (c.pos[0] - 150)) < 0.05 && Math.abs(m[1] + c.pos[1]) < 0.05; }), JSON.stringify(sc.map(c => c.pos)));
@@ -53,7 +53,7 @@ const s2 = await st(page), t2 = await tw(page);
 const rigInTwin = await page.evaluate(() => { const p = window.__twin.rigPose(); return { e: window.__twin.toTwin(p.eye), t: window.__twin.toTwin(p.target) }; });
 const dE = Math.hypot(...rigInTwin.e.map((v, i) => v - t2.cam[i])), dT = Math.hypot(...rigInTwin.t.map((v, i) => v - t2.tgt[i]));
 check('Enter: the twin fades in over the rig at the vessel overview; address #fpso', inOk && s2.on && s2.inside && t2.level === 'vessel' && !t2.paused && s2.hash === '#fpso');
-check('Handover alignment: rig and twin cameras share eye, target, field of view and picture shift', dE < 0.05 && dT < 0.05 && Math.abs(s2.fov - t2.fov) < 1e-6 && Math.abs(s2.offX - t2.offX) < 0.01, `dEye ${dE.toFixed(4)} dTarget ${dT.toFixed(4)} fov ${s2.fov}/${t2.fov} off ${s2.offX}/${t2.offX}`);
+check('Handover alignment: rig and twin cameras share eye (within 0.1 % of the viewing distance, under half a pixel), target, field of view and picture shift', dE < 0.001 * Math.hypot(...t2.cam.map((v, i) => v - t2.tgt[i])) && dT < 0.05 && Math.abs(s2.fov - t2.fov) < 1e-6 && Math.abs(s2.offX - t2.offX) < 0.01, `dEye ${dE.toFixed(4)} dTarget ${dT.toFixed(4)} fov ${s2.fov}/${t2.fov} off ${s2.offX}/${t2.offX}`);
 const f1 = (await st(page)).frames; await page.waitForTimeout(3000); const f2 = (await st(page)).frames;
 check('While the twin is shown the rig stops drawing', f2 === f1 && f1 > f0, `${f0} ${f1} ${f2}`);
 await shot(page, 'r10-03-twin');
@@ -85,7 +85,7 @@ await page.click('#panel [data-action="enter-container"]'); await until(page, ()
 check('Enter the container still opens the AMP-SPC interior', /Inside the AMP-SPC container/.test(await T(page, '#panel h2')));
 await page.click('#panel [data-action="to-fpso"]'); await until(page, () => page.evaluate(() => window.__proj.cur() === 'rig' && document.getElementById('ptrans').hidden)); await settle(page);
 check('Back to the FPSO deck returns to the AMP-SPC on the twin deck', /Frequency Power Converter/.test(await T(page, '#panel h2')));
-await page.click('#explorer [data-action="asset"][data-id="hi"]'); await settle(page); await shot(page, 'r10-06-hi');
+await page.click('#explorer [data-action="asset"][data-id="hi"]:visible'); await settle(page); await shot(page, 'r10-06-hi');
 check('AMP-HI card opens on the twin deck', /Hybrid Inverter/.test(await T(page, '#panel h2')));
 // hover text on the vessel when it is selected
 await page.click('#panel [data-action="asset"][data-id="fpso"]'); await settle(page);

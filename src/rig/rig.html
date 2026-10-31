@@ -7145,7 +7145,7 @@ openHMI = function (id, unit) {
   if (!e) return openHMIR9(id, unit);
   const P = screenPose(e);
   HMIF.back = { p: camera.position.clone(), t: controls.target.clone() };
-  if (reduceMotion || camera.position.distanceTo(P.eye) < 0.4) { camera.position.copy(P.eye); controls.target.copy(P.target); camera.lookAt(P.target); fly = null; return openHMIR9(id, unit); }
+  if (reduceMotion || camera.position.distanceTo(P.eye) < 0.4) { if (camReady) pushCam(); camera.position.copy(P.eye); controls.target.copy(P.target); camera.lookAt(P.target); fly = null; return openHMIR9(id, unit); }
   HMIF.busy = true; FOCUS.box = null; FOCUS.pending = null; controls.minDistance = 0.3;
   flyTo(P.eye, P.target, 0.9, () => { HMIF.busy = false; openHMIR9(id, unit); }, 'Focused');
   const mine = fly; setTimeout(function chk() { if (HMIF.busy && fly !== mine) HMIF.busy = false; else if (HMIF.busy) setTimeout(chk, 250); }, 250); // visitor took the camera
@@ -7153,7 +7153,7 @@ openHMI = function (id, unit) {
 closeHMI = function () {
   closeHMIR9();
   const b = HMIF.back; HMIF.back = null;
-  if (b && PROJ.cur === 'rig' && !cabinState.open && !WALK.on) flyTo(b.p, b.t, reduceMotion ? 0.01 : 0.9, undefined, 'Focused');
+  if (b && PROJ.cur === 'rig' && !cabinState.open && !WALK.on && CAM.hist.length) camReturn(); // undo the step to the screen: Back history stays as it was
 };
 // test hook: how much of a system's equipment is visible in the free screen area, and not hidden behind other geometry
 function auditObjs(objs, ownSys = null) {
